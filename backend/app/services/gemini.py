@@ -1,6 +1,6 @@
 import google.generativeai as genai
 from dotenv import load_dotenv
-from core.config import settings
+from app.core.config import settings
 import os
 import json
 

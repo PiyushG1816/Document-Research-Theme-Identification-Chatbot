@@ -1,8 +1,8 @@
 from fastapi import APIRouter, UploadFile, File
-from models.request import QueryRequest
-from services.files import save_file
-from services.chroma import store_document_in_chroma, collection, embedding_model
-from services.gemini import query_gemini
+from app.models.request import QueryRequest
+from app.services.files import save_file
+from app.services.chroma import store_document_in_chroma, collection, embedding_model
+from app.services.gemini import query_gemini
 
 router = APIRouter()
 

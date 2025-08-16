@@ -44,7 +44,7 @@ def split_text_with_metadata(pages, chunk_size=500):
     return chunks
 
 def store_document_in_chroma(file_path: str, filename: str):
-    from services.ocr import extract_text_from_pdf, extract_text_from_image
+    from app.services.ocr import extract_text_from_pdf, extract_text_from_image
 
     if filename.lower().endswith(".pdf"):
         pages = extract_text_from_pdf(file_path)
