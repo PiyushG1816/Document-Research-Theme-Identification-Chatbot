@@ -31,32 +31,48 @@ function App() {
   // Query documents
 const handleQuery = async () => {
   if (!query) return alert("Please enter a query!");
+  
+  console.log("Sending to:", `${apiUrl}/query/`); // Debug URL
+  console.log("Payload:", { query, top_k: 3 }); // Debug request body
+
   try {
     const res = await fetch(`${apiUrl}/query/`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json" // Explicitly ask for JSON
+      },
       body: JSON.stringify({ query, top_k: 3 }),
     });
 
-    if (!res.ok) throw new Error("Query failed");
+    console.log("Response status:", res.status); // Debug status code
+    
+    if (!res.ok) {
+      const errorText = await res.text(); // Get full error response
+      console.error("Full error response:", errorText);
+      throw new Error(`Server responded with ${res.status}: ${errorText}`);
+    }
+
+    const contentType = res.headers.get("content-type");
+    if (!contentType?.includes("application/json")) {
+      const text = await res.text();
+      console.warn("Received non-JSON response:", text);
+      throw new Error("Server returned non-JSON response");
+    }
 
     const data = await res.json();
-    console.log("Query response:", data); // 👈 check exact structure in console
+    console.log("Full response data:", data); // Debug complete response
 
-    // Handle possible response shapes
-    if (Array.isArray(data)) {
-      setResults(data);
-    } else if (data.results) {
-      setResults(data.results);
-    } else if (data.data) {
-      setResults(data.data);
-    } else {
-      console.warn("Unexpected response shape:", data);
-      setResults([]);
-    }
+    // Simplified response handling
+    setResults(
+      data.results || 
+      data.data || 
+      (Array.isArray(data) ? data : [data]) // Fallback to array
+    );
+    
   } catch (err) {
-    console.error(err);
-    alert("Query failed");
+    console.error("Complete error:", err);
+    alert(`Query failed: ${err.message}`);
   }
 };
 
