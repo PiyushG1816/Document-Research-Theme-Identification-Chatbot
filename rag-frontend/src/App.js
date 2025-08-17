@@ -29,25 +29,37 @@ function App() {
   };
 
   // Query documents
-  const handleQuery = async () => {
-    if (!query) return alert("Please enter a query!");
-    try {
-      const res = await fetch(`${apiUrl}/query/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, top_k: 3 }),
-      });
-      if (!res.ok) throw new Error("Query failed");
-      const data = await res.json();
-      console.log("Query response:", data);
+const handleQuery = async () => {
+  if (!query) return alert("Please enter a query!");
+  try {
+    const res = await fetch(`${apiUrl}/query/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, top_k: 3 }),
+    });
 
-      // Expect results inside "results"
-      setResults(data.results || []);
-    } catch (err) {
-      console.error(err);
-      alert("Query failed");
+    if (!res.ok) throw new Error("Query failed");
+
+    const data = await res.json();
+    console.log("Query response:", data); // 👈 check exact structure in console
+
+    // Handle possible response shapes
+    if (Array.isArray(data)) {
+      setResults(data);
+    } else if (data.results) {
+      setResults(data.results);
+    } else if (data.data) {
+      setResults(data.data);
+    } else {
+      console.warn("Unexpected response shape:", data);
+      setResults([]);
     }
-  };
+  } catch (err) {
+    console.error(err);
+    alert("Query failed");
+  }
+};
+
 
   return (
     <div className="App">
