@@ -5,6 +5,8 @@ function App() {
   const [file, setFile] = useState(null);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
+  const [apiUrl, setApiUrl] = useState(process.env.REACT_APP_API_URL || "");
+  // 🔴 Change this to your ngrok/cloudflared URL when deploying
 
   // Upload file
   const handleUpload = async () => {
@@ -13,10 +15,11 @@ function App() {
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/upload/", {
+      const res = await fetch(`${apiUrl}/upload/`, {
         method: "POST",
         body: formData,
       });
+      if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();
       alert(data.message);
     } catch (err) {
@@ -29,11 +32,12 @@ function App() {
   const handleQuery = async () => {
     if (!query) return alert("Please enter a query!");
     try {
-      const res = await fetch("http://127.0.0.1:8000/query/", {
+      const res = await fetch(`${apiUrl}/query/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query, top_k: 3 }),
       });
+      if (!res.ok) throw new Error("Query failed");
       const data = await res.json();
       setResults(data);
     } catch (err) {
@@ -45,6 +49,18 @@ function App() {
   return (
     <div className="App">
       <h1>📄 RAG Document Assistant</h1>
+
+      {/* API URL setter */}
+      <div className="section">
+        <label>Backend API URL: </label>
+        <input
+          type="text"
+          value={apiUrl}
+          onChange={(e) => setApiUrl(e.target.value)}
+          placeholder="http://127.0.0.1:8000"
+          style={{ width: "60%" }}
+        />
+      </div>
 
       {/* Upload */}
       <div className="section">
