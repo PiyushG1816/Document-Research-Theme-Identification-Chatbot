@@ -39,7 +39,10 @@ function App() {
       });
       if (!res.ok) throw new Error("Query failed");
       const data = await res.json();
-      setResults(data);
+      console.log("Query response:", data);
+
+      // Expect results inside "results"
+      setResults(data.results || []);
     } catch (err) {
       console.error(err);
       alert("Query failed");
