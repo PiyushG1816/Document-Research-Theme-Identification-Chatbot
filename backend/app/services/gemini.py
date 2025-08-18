@@ -12,76 +12,84 @@ print("DEBUG GOOGLE_API_KEY:", settings.GOOGLE_API_KEY)
 
 def query_gemini(prompt: str, context: list):
     model = genai.GenerativeModel("gemini-1.5-flash-latest")
-
-    system_prompt = """
-    You are a document assistant that provides answers in strict JSON format.
-    Rules:
-    - Always include the citation metadata (document_id, filename, page, paragraph, sentence).
-    - "citations" must be taken directly from the context metadata, not invented.
-    - Always output valid JSON only.
-    Example format:
+    
+    system_prompt = """You are a document assistant that provides answers in this exact JSON format:
     {
-        "results": [
-            {
-                "document_id": "uuid123",
-                "theme": "Topic",
-                "extracted_answer": "answer here",
-                "citations": [
-                    {
-                        "filename": "doc1.pdf",
-                        "page": 2,
-                        "paragraph": 3,
-                        "sentence": 1
-                    }
-                ]
-            }
-        ]
-    }
-    """
-
-    # Pass both text and metadata to Gemini
-    formatted_context = []
-    for doc in context:
-        formatted_context.append({
-            "document_id": doc["id"],
-            "filename": doc["metadata"].get("filename"),
-            "page": doc["metadata"].get("page"),
-            "paragraph": doc["metadata"].get("paragraph"),
-            "sentence": doc["metadata"].get("sentence")      
-        })
-
-    full_prompt = f"""
-    {system_prompt}
-
-    Context Documents:
-    {json.dumps(formatted_context, indent=2)}
-
-    Question: {prompt}
-    """
+        "results": [{
+            "document_id": "string",
+            "theme": "string",
+            "extracted_answer": "string",
+            "citations": [{
+                "filename": "string",
+                "page": "number",
+                "paragraph": "number",
+                "sentence": "number"
+            }]
+        }]
+    }"""
 
     try:
-        response = model.generate_content(full_prompt)
+        # Format context more robustly
+        formatted_context = []
+        for idx, doc in enumerate(context):
+            # Handle both ChromaDB v3 and v4 metadata formats
+            metadata = doc.get("metadata", {}) if isinstance(doc, dict) else {}
+            
+            formatted_context.append({
+                "document_id": doc.get("id", f"doc_{idx}"),
+                "content": doc.get("document") or doc.get("content", ""),
+                "metadata": {
+                    "filename": metadata.get("filename", "unknown"),
+                    "page": metadata.get("page", 0),
+                    "paragraph": metadata.get("paragraph", 0),
+                    "sentence": metadata.get("sentence", 0)
+                }
+            })
+
+        # More explicit prompt engineering
+        full_prompt = {
+            "system_instruction": system_prompt,
+            "context": formatted_context,
+            "question": prompt,
+            "requirements": [
+                "Use ONLY the provided context",
+                "Include ALL citation metadata exactly as provided",
+                "Output MUST be valid JSON matching the given schema"
+            ]
+        }
+
+        # Generate with timeout
+        response = model.generate_content(
+            json.dumps(full_prompt, indent=2),
+            generation_config={
+                "temperature": 0.3,
+                "max_output_tokens": 2000
+            },
+            request_options={"timeout": 10}  # 10 second timeout
+        )
+
+        if not response.text:
+            raise ValueError("Empty response from Gemini")
+
+        # More robust JSON extraction
         raw_text = response.text.strip()
-
-        if raw_text.startswith("```json"):
-            raw_text = raw_text[7:-3].strip()
-        elif raw_text.startswith("```"):
-            raw_text = raw_text[3:-3].strip()
-
-        result = json.loads(raw_text)
-
-        if "results" not in result:
-            raise ValueError("Invalid response format")
-
+        json_str = raw_text.replace("```json", "").replace("```", "").strip()
+        
+        result = json.loads(json_str)
+        
+        # Validate response structure
+        if not isinstance(result.get("results"), list):
+            raise ValueError("Invalid response format: missing results array")
+            
         return result
 
     except Exception as e:
+        print(f"Gemini Error: {str(e)}")
         return {
             "results": [{
                 "document_id": "error",
                 "theme": "Error",
-                "extracted_answer": f"Could not process response: {str(e)}",
+                "extracted_answer": f"Processing error: {str(e)}",
                 "citations": []
             }]
         }
-
