@@ -62,7 +62,7 @@ def store_document_in_chroma(file_path: str, filename: str):
 
     for i, chunk in enumerate(chunks):
         collection.add(
-            ids=[str(uuid.uuid4())],
+            ids=[f"{filename}_p{chunk['page']}_par{chunk['paragraph']}_c{i}"],
             documents=[chunk["text"]],
             embeddings=[embeddings[i]],
             metadatas=[{
