@@ -19,24 +19,24 @@ async def query_documents(request: QueryRequest):
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=request.top_k,
-        include=["documents", "metadatas"]
+        include=["ids", "documents", "metadatas"]
     )
 
-    # Prepare context
+    # Prepare context with explicit fields
     docs = results["documents"][0]
     metas = results["metadatas"][0]
-    
+    ids = results["ids"][0]
+
     context = []
-    for d, m in zip(docs, metas):
+    for doc_id, d, m in zip(ids, docs, metas):
         context.append({
+            "id": doc_id,
             "content": d,
-            "metadata": {
-                "filename": m.get("filename"),
-                "page": m.get("page"),
-                "paragraph": m.get("paragraph"),
-                "sentence": m.get("sentence")
-            }
+            "filename": m.get("filename"),
+            "page": m.get("page"),
+            "paragraph": m.get("paragraph"),
+            "sentence": m.get("sentence")
         })
-    
+
     # Get structured response from Gemini
     return query_gemini(request.query, context)
