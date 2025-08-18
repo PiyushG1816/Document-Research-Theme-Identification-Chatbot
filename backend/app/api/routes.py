@@ -14,29 +14,21 @@ async def upload_file(file: UploadFile = File(...)):
 
 @router.post("/query/")
 async def query_documents(request: QueryRequest):
-    # Get relevant documents
     query_embedding = embedding_model.encode([request.query]).tolist()[0]
+    
+    # Remove "ids" from include list
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=request.top_k,
-        include=["ids", "documents", "metadatas"]
+        include=["documents", "metadatas"]  # Only these are valid
     )
-
-    # Prepare context with explicit fields
+    
     docs = results["documents"][0]
     metas = results["metadatas"][0]
-    ids = results["ids"][0]
-
-    context = []
-    for doc_id, d, m in zip(ids, docs, metas):
-        context.append({
-            "id": doc_id,
-            "content": d,
-            "filename": m.get("filename"),
-            "page": m.get("page"),
-            "paragraph": m.get("paragraph"),
-            "sentence": m.get("sentence")
-        })
-
-    # Get structured response from Gemini
+    
+    context = [
+        {"content": d, "metadata": m} 
+        for d, m in zip(docs, metas)
+    ]
+    
     return query_gemini(request.query, context)
