@@ -31,8 +31,7 @@ def query_gemini(prompt: str, context: list):
                         "filename": "doc1.pdf",
                         "page": 2,
                         "paragraph": 3,
-                        "sentence": 1,
-                        "text": "exact supporting text"
+                        "sentence": 1
                     }
                 ]
             }
@@ -48,8 +47,7 @@ def query_gemini(prompt: str, context: list):
             "filename": doc["metadata"].get("filename"),
             "page": doc["metadata"].get("page"),
             "paragraph": doc["metadata"].get("paragraph"),
-            "sentence": doc["metadata"].get("sentence"),
-            "text": doc["text"]
+            "sentence": doc["metadata"].get("sentence")      
         })
 
     full_prompt = f"""
