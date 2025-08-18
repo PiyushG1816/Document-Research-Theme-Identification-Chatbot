@@ -44,7 +44,7 @@ const handleQuery = async () => {
       },
       body: JSON.stringify({ query, top_k: 3 }),
     });
-
+    
     console.log("Response status:", res.status); // Debug status code
     
     if (!res.ok) {
@@ -128,10 +128,21 @@ const handleQuery = async () => {
             <tbody>
               {results.map((row, i) => (
                 <tr key={i}>
-                  <td>{row.document_id}</td>
-                  <td>{row.theme}</td>
-                  <td>{row.extracted_answer}</td>
-                  <td>{row.citations}</td>
+                  <td>{row?.document_id || 'N/A'}</td>
+                  <td>{row?.theme || 'N/A'}</td>
+                  <td>{row?.extracted_answer || 'N/A'}</td>
+                  <td>
+                    {Array.isArray(row?.citations) 
+                      ? row.citations.map((cite, idx) => (
+                          <div key={idx}>
+                            {cite?.filename || 'Unknown'} 
+                            {cite?.page && ` (Page ${cite.page})`}
+                            {cite?.paragraph && `, Para ${cite.paragraph}`}
+                          </div>
+                        ))
+                      : 'No citations'
+                    }
+                  </td>
                 </tr>
               ))}
             </tbody>
