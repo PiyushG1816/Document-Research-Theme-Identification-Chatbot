@@ -8,7 +8,6 @@ load_dotenv()
 
 # Configure Gemini
 genai.configure(api_key=settings.GOOGLE_API_KEY)
-print("DEBUG GOOGLE_API_KEY:", settings.GOOGLE_API_KEY)
 
 def query_gemini(prompt: str, context: list):
     model = genai.GenerativeModel("gemini-1.5-flash-latest")

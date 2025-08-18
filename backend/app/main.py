@@ -1,9 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.services.chroma import preload_test_data
 from app.api.routes import router
 from app.core.config import settings
 
 app = FastAPI(title="RAG Backend")
+
+@app.on_event("startup")
+async def startup_event():
+    preload_test_data("test") 
 
 # Middleware
 app.add_middleware(

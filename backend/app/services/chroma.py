@@ -1,6 +1,5 @@
 import os, uuid, re
 import chromadb
-from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 
 # Directories
@@ -10,8 +9,8 @@ os.makedirs(CHROMA_DIR, exist_ok=True)
 # Embedding model
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# Chroma client
-client = chromadb.Client(Settings(persist_directory=CHROMA_DIR))
+# ✅ Persistent client (auto-saves, no need to call persist())
+client = chromadb.PersistentClient(path=CHROMA_DIR)
 collection = client.get_or_create_collection("documents")
 
 def split_text_with_metadata(pages, chunk_size=500):
@@ -43,6 +42,7 @@ def split_text_with_metadata(pages, chunk_size=500):
                 })
     return chunks
 
+
 def store_document_in_chroma(file_path: str, filename: str):
     from app.services.ocr import extract_text_from_pdf, extract_text_from_image
 
@@ -73,3 +73,30 @@ def store_document_in_chroma(file_path: str, filename: str):
                 "sentence": chunk["sentence"]
             }]
         )
+    # ✅ No need to call persist()
+    print(f"[INFO] Stored {len(chunks)} chunks from {filename} into ChromaDB.")
+
+def preload_test_data(test_folder: str):
+    """Preload all files from test/ folder into ChromaDB without duplicates"""
+    test_dir = os.path.join(os.getcwd(), test_folder)
+    if not os.path.exists(test_dir):
+        print(f"[WARN] Test folder {test_dir} not found.")
+        return
+
+    # Get existing IDs in the collection
+    existing_ids = set(collection.get(include=[])["ids"])
+
+    for fname in os.listdir(test_dir):
+        file_path = os.path.join(test_dir, fname)
+        try:
+            if os.path.isfile(file_path):
+                # Check if this file already indexed (filename appears in ID)
+                if any(fname in eid for eid in existing_ids):
+                    print(f"[INFO] Skipping {fname}, already indexed.")
+                    continue
+
+                store_document_in_chroma(file_path, fname)
+                print(f"[SUCCESS] Indexed {fname}")
+        except Exception as e:
+            print(f"[ERROR] Failed to index {fname}: {e}")
+
